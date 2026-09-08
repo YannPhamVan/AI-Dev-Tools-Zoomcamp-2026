@@ -1,0 +1,87 @@
+{% extends 'chores/base.html' %}
+
+{% block title %}Manage Chores — Shared Household Chores{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Recurring Chore Definitions</h2>
+        <p class="text-muted mb-0">Define and manage recurring chores for your household</p>
+    </div>
+    <div>
+        <a href="{% url 'chores:chore_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Add Chore
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Chore Name</th>
+                    <th>Frequency</th>
+                    <th>Assigned Member</th>
+                    <th>Schedule Details</th>
+                    <th>Start Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for chore in chores %}
+                    <tr>
+                        <td class="fw-semibold">{{ chore.name }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ chore.get_frequency_display }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-person-fill me-1"></i>{{ chore.assigned_to.name }} ({{ chore.assigned_to.get_role_display }})
+                            </span>
+                        </td>
+                        <td class="small text-muted">
+                            {% if chore.frequency == 'daily' %}
+                                Every day
+                            {% elif chore.frequency == 'weekly' %}
+                                {% if chore.is_flexible %}
+                                    Flexible within the week (due Sunday)
+                                {% else %}
+                                    Every {{ chore.get_specific_day_of_week_display }}
+                                {% endif %}
+                            {% elif chore.frequency == 'monthly' %}
+                                {% if chore.is_flexible %}
+                                    Flexible within the month (due month-end)
+                                {% else %}
+                                    Day {{ chore.specific_day_of_month }} of month
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="small">{{ chore.start_date|date:"M d, Y" }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'chores:chore_edit' chore.pk %}" class="btn btn-sm btn-outline-secondary me-1">
+                                <i class="bi bi-pencil me-1"></i> Edit
+                            </a>
+                            <a href="{% url 'chores:chore_delete' chore.pk %}" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-calendar-plus fs-3 d-block mb-2"></i>
+                            No recurring chores defined yet.
+                            <div class="mt-2">
+                                <a href="{% url 'chores:chore_create' %}" class="btn btn-sm btn-primary">
+                                    Create your first chore
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
