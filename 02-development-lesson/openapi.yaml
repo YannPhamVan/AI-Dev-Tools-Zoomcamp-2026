@@ -1,0 +1,373 @@
+openapi: 3.0.3
+info:
+  title: Snake Arena API
+  description: |
+    Backend API for Snake Arena Classic, a retro 20x20 Snake game with player authentication,
+    persistent score tracking, personal high score updates, and a global Top 10 leaderboard.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: /
+    description: Current host
+
+tags:
+  - name: Auth
+    description: Player registration, login, logout, and session retrieval
+  - name: Scores
+    description: Submitting game scores and updating high scores
+  - name: Leaderboard
+    description: Global Top 10 leaderboard
+
+paths:
+  /api/auth/signup:
+    post:
+      tags:
+        - Auth
+      summary: Register a new player account
+      description: |
+        Creates a new player account with a unique username and password.
+        Initializes personal high score to 0 and authenticates the player.
+      operationId: signUp
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '201':
+          description: Player account successfully created and authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error (username < 3 chars, password < 4 chars)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                usernameTooShort:
+                  value:
+                    error: "Le pseudo doit faire au moins 3 caractères."
+                passwordTooShort:
+                  value:
+                    error: "Le mot de passe doit faire au moins 4 caractères."
+        '409':
+          description: Username is already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                usernameTaken:
+                  value:
+                    error: "Ce pseudo est déjà utilisé."
+
+  /api/auth/signin:
+    post:
+      tags:
+        - Auth
+      summary: Log in with existing player credentials
+      description: Authenticates player by username and password.
+      operationId: signIn
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid username or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCredentials:
+                  value:
+                    error: "Identifiants invalides."
+
+  /api/auth/signout:
+    post:
+      tags:
+        - Auth
+      summary: Log out current player
+      description: Terminates active session or revokes authentication token.
+      operationId: signOut
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Successfully signed out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Déconnexion réussie."
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get current authenticated player
+      description: Retrieves profile and personal high score of current authenticated player.
+      operationId: currentPlayer
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Current authenticated player details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerResponse'
+        '401':
+          description: Not authenticated / No active session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/scores:
+    post:
+      tags:
+        - Scores
+      summary: Submit a game score at game over
+      description: |
+        Submits the score achieved in a finished game.
+        If the score is higher than player's previous high score, high score is updated.
+      operationId: submitScore
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitScoreRequest'
+      responses:
+        '200':
+          description: Score recorded; returns updated player record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitScoreResponse'
+        '400':
+          description: Invalid score value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required to submit scores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/leaderboard:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get global Top 10 leaderboard
+      description: Returns the top 10 highest scores across all players, sorted in descending order.
+      operationId: leaderboard
+      security: []
+      responses:
+        '200':
+          description: List of top 10 players with rank, username, and high score
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeaderboardEntry'
+                maxItems: 10
+                example:
+                  - rank: 1
+                    username: "cobra_kai"
+                    score: 87
+                  - rank: 2
+                    username: "viper"
+                    score: 74
+                  - rank: 3
+                    username: "mamba"
+                    score: 66
+                  - rank: 4
+                    username: "python42"
+                    score: 58
+                  - rank: 5
+                    username: "slither"
+                    score: 51
+                  - rank: 6
+                    username: "anaconda"
+                    score: 44
+                  - rank: 7
+                    username: "boa"
+                    score: 37
+                  - rank: 8
+                    username: "adder"
+                    score: 29
+                  - rank: 9
+                    username: "rattler"
+                    score: 22
+                  - rank: 10
+                    username: "garter"
+                    score: 15
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token authorization header (Authorization: Bearer <token>)
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session_token
+      description: Session cookie authorization
+
+  schemas:
+    Player:
+      type: object
+      required:
+        - username
+        - highScore
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          example: "cobra_kai"
+        highScore:
+          type: integer
+          minimum: 0
+          example: 87
+
+    SignUpRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          example: "mamba"
+        password:
+          type: string
+          minLength: 4
+          maxLength: 64
+          format: password
+          example: "secret123"
+
+    SignInRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: "mamba"
+        password:
+          type: string
+          format: password
+          example: "secret123"
+
+    AuthResponse:
+      type: object
+      required:
+        - player
+      properties:
+        player:
+          $ref: '#/components/schemas/Player'
+        token:
+          type: string
+          description: Optional authentication token (if JWT / token-based auth)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    PlayerResponse:
+      type: object
+      required:
+        - player
+      properties:
+        player:
+          $ref: '#/components/schemas/Player'
+
+    SubmitScoreRequest:
+      type: object
+      required:
+        - score
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          example: 42
+
+    SubmitScoreResponse:
+      type: object
+      required:
+        - player
+      properties:
+        player:
+          $ref: '#/components/schemas/Player'
+        isNewHighScore:
+          type: boolean
+          example: true
+
+    LeaderboardEntry:
+      type: object
+      required:
+        - rank
+        - username
+        - score
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 1
+        username:
+          type: string
+          example: "cobra_kai"
+        score:
+          type: integer
+          minimum: 0
+          example: 87
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Identifiants invalides."
