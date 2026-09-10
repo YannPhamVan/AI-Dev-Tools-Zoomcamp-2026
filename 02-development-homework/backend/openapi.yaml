@@ -1,0 +1,180 @@
+openapi: 3.1.0
+info:
+  title: ShareTrip API
+  version: 0.1.0
+  description: API for splitting shared travel expenses.
+servers:
+  - url: http://localhost:8000
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+  /trips:
+    post:
+      operationId: createTrip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTripRequest' }
+      responses:
+        '201':
+          description: Trip created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Trip' }
+  /trips/{trip_id}:
+    parameters: [{ $ref: '#/components/parameters/TripId' }]
+    get:
+      operationId: getTrip
+      responses:
+        '200':
+          description: Trip details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Trip' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /trips/{trip_id}/members:
+    parameters: [{ $ref: '#/components/parameters/TripId' }]
+    post:
+      operationId: createMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateMemberRequest' }
+      responses:
+        '201':
+          description: Member created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Member' }
+        '409': { description: Member already exists }
+  /trips/{trip_id}/expenses:
+    parameters: [{ $ref: '#/components/parameters/TripId' }]
+    get:
+      operationId: listExpenses
+      responses:
+        '200':
+          description: Expenses, newest first
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Expense' } }
+    post:
+      operationId: createExpense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateExpenseRequest' }
+      responses:
+        '201':
+          description: Expense created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Expense' }
+  /trips/{trip_id}/expenses/{expense_id}:
+    parameters:
+      - { $ref: '#/components/parameters/TripId' }
+      - name: expense_id
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      operationId: deleteExpense
+      responses:
+        '204': { description: Expense deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /trips/{trip_id}/balances:
+    parameters: [{ $ref: '#/components/parameters/TripId' }]
+    get:
+      operationId: listBalances
+      responses:
+        '200':
+          description: Current balance per member
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Balance' } }
+  /trips/{trip_id}/settlements:
+    parameters: [{ $ref: '#/components/parameters/TripId' }]
+    get:
+      operationId: listSettlements
+      responses:
+        '200':
+          description: Greedy optimized transfers
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Settlement' } }
+components:
+  parameters:
+    TripId:
+      name: trip_id
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    NotFound:
+      description: Resource not found
+  schemas:
+    CreateTripRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+    CreateMemberRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+    CreateExpenseRequest:
+      type: object
+      required: [description, amount, paid_by]
+      properties:
+        description: { type: string, minLength: 1, maxLength: 160 }
+        amount: { type: number, exclusiveMinimum: 0 }
+        paid_by: { type: string }
+    Member:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    Expense:
+      type: object
+      required: [id, description, amount, paid_by, created_at]
+      properties:
+        id: { type: string }
+        description: { type: string }
+        amount: { type: number }
+        paid_by: { type: string }
+        created_at: { type: string, format: date-time }
+    Trip:
+      type: object
+      required: [id, name, members, expenses]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        members: { type: array, items: { $ref: '#/components/schemas/Member' } }
+        expenses: { type: array, items: { $ref: '#/components/schemas/Expense' } }
+    Balance:
+      type: object
+      required: [member_id, balance]
+      properties:
+        member_id: { type: string }
+        balance: { type: number }
+    Settlement:
+      type: object
+      required: [from_member_id, to_member_id, amount]
+      properties:
+        from_member_id: { type: string }
+        to_member_id: { type: string }
+        amount: { type: number }
