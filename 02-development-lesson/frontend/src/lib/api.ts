@@ -89,7 +89,7 @@ export async function signUp(
   username: string,
   password: string,
 ): Promise<{ player?: Player; error?: string }> {
-  const res = await request<AuthResponse>("/auth/signup", {
+  const res = await request<AuthResponse>("/api/auth/signup", {
     method: "POST",
     body: JSON.stringify({ username, password }),
   });
@@ -106,7 +106,7 @@ export async function signIn(
   username: string,
   password: string,
 ): Promise<{ player?: Player; error?: string }> {
-  const res = await request<AuthResponse>("/auth/signin", {
+  const res = await request<AuthResponse>("/api/auth/signin", {
     method: "POST",
     body: JSON.stringify({ username, password }),
   });
@@ -124,7 +124,7 @@ export function signOut(): void {
 }
 
 export async function leaderboard(): Promise<LeaderboardEntry[]> {
-  const res = await request<LeaderboardEntry[]>("/leaderboard");
+  const res = await request<LeaderboardEntry[]>("/api/leaderboard");
   if (res.data && Array.isArray(res.data)) {
     return res.data;
   }
@@ -133,7 +133,7 @@ export async function leaderboard(): Promise<LeaderboardEntry[]> {
 
 export async function submitScore(score: number): Promise<Player | null> {
   const res = await request<SubmitScoreResponse>(
-    "/scores",
+    "/api/scores",
     {
       method: "POST",
       body: JSON.stringify({ score }),
@@ -142,7 +142,6 @@ export async function submitScore(score: number): Promise<Player | null> {
   );
 
   if (res.data?.player) {
-    const current = currentPlayer();
     const updated: Player = {
       username: res.data.player.username,
       highScore: res.data.player.highScore,

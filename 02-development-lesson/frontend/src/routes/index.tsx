@@ -8,3 +8,14 @@ import {
   signOut,
   signUp,
   submitScore,
+  type LeaderboardEntry,
+  type Player,
+} from "@/lib/api";
+
+export const Route = createFileRoute("/")({
+  component: IndexPage,
+});
+
+function IndexPage() {
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [board, setBoard] = useState<Leader
