@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Generator
 
-from sqlalchemy import Column, Integer, String, create_engine, select
+from sqlalchemy import Column, Integer, String, create_engine, desc, select
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
@@ -57,49 +57,3 @@ class Store:
         try:
             yield session
             session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-
-    def _seed(self) -> None:
-        """Seed demo players if empty."""
-        demo = [
-            ("cobra_kai", "demo", 87),
-            ("viper", "demo", 74),
-            ("mamba", "demo", 66),
-            ("python42", "demo", 58),
-            ("slither", "demo", 51),
-            ("anaconda", "demo", 44),
-            ("boa", "demo", 37),
-            ("adder", "demo", 29),
-            ("rattler", "demo", 22),
-            ("garter", "demo", 15),
-            ("newbie", "demo", 8),
-        ]
-        with self.get_session() as session:
-            count = session.query(PlayerModel).count()
-            if count == 0:
-                from backend.auth import hash_password
-
-                for uname, pwd, score in demo:
-                    player = PlayerModel(
-                        username=uname,
-                        hashed_password=hash_password(pwd),
-                        high_score=score,
-                    )
-                    session.add(player)
-
-    def username_exists(self, username: str) -> bool:
-        with self.get_session() as session:
-            stmt = select(PlayerModel).where(PlayerModel.username == username.strip())
-            return session.scalars(stmt).first() is not None
-
-    def create_player(self, username: str, hashed_password: str) -> PlayerRecord:
-        uname = username.strip()
-        with self.get_session() as session:
-            player = PlayerModel(
-                username=uname,
-                hashed_password=hashed_password,
-                high_score=0
