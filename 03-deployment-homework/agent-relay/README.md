@@ -18,6 +18,22 @@ file. `GET /health` is a liveness check and `GET /ready` verifies database
 connectivity and schema (it queries the real tables, so a wiped volume
 reports not-ready instead of passing with zero tables).
 
+## Docker quick start
+
+Build the container image and run it with port 8000 published to your host:
+
+```powershell
+docker build -t agent-relay:local .
+docker run --rm -d -p 8000:8000 --name agent-relay-local agent-relay:local
+
+# Verify endpoints (PowerShell)
+Invoke-RestMethod http://127.0.0.1:8000/health
+Invoke-RestMethod http://127.0.0.1:8000/ready
+```
+
+Use the included helper `start-agent-relay.ps1` to build, run or stop the
+container from this directory.
+
 Register two identities and send a task:
 
 ```bash

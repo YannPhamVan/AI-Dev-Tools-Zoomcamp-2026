@@ -189,12 +189,25 @@ def immediate_transaction() -> Generator[Session, None, None]:
     connection = engine.connect()
     session = Session(bind=connection, expire_on_commit=False, autoflush=True)
     try:
-        connection.exec_driver_sql("BEGIN IMMEDIATE")
-        yield session
-        session.flush()
-        connection.commit()
+        # SQLite requires a writer reservation to serialize competing writers.
+        # Other databases (PostgreSQL) should use a normal transactional
+        # boundary and rely on row-level locking (FOR UPDATE SKIP LOCKED)
+        if _is_sqlite(DATABASE_URL):
+            connection.exec_driver_sql("BEGIN IMMEDIATE")
+            yield session
+            session.flush()
+            connection.commit()
+        else:
+            trans = connection.begin()
+            try:
+                yield session
+                session.flush()
+                trans.commit()
+            except Exception:
+                trans.rollback()
+                raise
     except Exception:
-        connection.rollback()
+        # ensure any outer rollback is propagated
         raise
     finally:
         session.close()
