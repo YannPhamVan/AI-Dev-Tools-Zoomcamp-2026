@@ -48,8 +48,13 @@ class PlayerRecord:
 
 class Store:
     def __init__(self):
+        Base.metadata.drop_all(bind=engine)
         Base.metadata.create_all(bind=engine)
         self._seed()
+
+    @staticmethod
+    def _normalize_username(username: str) -> str:
+        return username.strip().lower()
 
     @contextmanager
     def get_session(self) -> Generator[Session, None, None]:
@@ -66,17 +71,17 @@ class Store:
     def _seed(self) -> None:
         """Seed demo players if table is empty."""
         demo = [
-            ("cobra_kai", "demo", 87),
-            ("viper", "demo", 74),
-            ("mamba", "demo", 66),
-            ("python42", "demo", 58),
-            ("slither", "demo", 51),
-            ("anaconda", "demo", 44),
-            ("boa", "demo", 37),
-            ("adder", "demo", 29),
-            ("rattler", "demo", 22),
-            ("garter", "demo", 15),
-            ("newbie", "demo", 8),
+            ("cobra_kai", "demo1234", 87),
+            ("viper", "demo1234", 74),
+            ("mamba", "demo1234", 66),
+            ("python42", "demo1234", 58),
+            ("slither", "demo1234", 51),
+            ("anaconda", "demo1234", 44),
+            ("boa", "demo1234", 37),
+            ("adder", "demo1234", 29),
+            ("rattler", "demo1234", 22),
+            ("garter", "demo1234", 15),
+            ("newbie", "demo1234", 8),
         ]
         with self.get_session() as session:
             count = session.query(PlayerModel).count()
@@ -86,19 +91,20 @@ class Store:
                 for uname, pwd, score in demo:
                     session.add(
                         PlayerModel(
-                            username=uname,
+                            username=self._normalize_username(uname),
                             hashed_password=hash_password(pwd),
                             high_score=score,
                         )
                     )
 
     def username_exists(self, username: str) -> bool:
+        uname = self._normalize_username(username)
         with self.get_session() as session:
-            stmt = select(PlayerModel).where(PlayerModel.username == username.strip())
+            stmt = select(PlayerModel).where(PlayerModel.username == uname)
             return session.scalars(stmt).first() is not None
 
     def create_player(self, username: str, hashed_password: str) -> PlayerRecord:
-        uname = username.strip()
+        uname = self._normalize_username(username)
         with self.get_session() as session:
             player = PlayerModel(
                 username=uname,
@@ -114,8 +120,9 @@ class Store:
             )
 
     def get_player(self, username: str) -> PlayerRecord | None:
+        uname = self._normalize_username(username)
         with self.get_session() as session:
-            stmt = select(PlayerModel).where(PlayerModel.username == username.strip())
+            stmt = select(PlayerModel).where(PlayerModel.username == uname)
             player = session.scalars(stmt).first()
             if not player:
                 return None
@@ -126,8 +133,9 @@ class Store:
             )
 
     def update_high_score(self, username: str, score: int) -> tuple[PlayerRecord, bool]:
+        uname = self._normalize_username(username)
         with self.get_session() as session:
-            stmt = select(PlayerModel).where(PlayerModel.username == username.strip())
+            stmt = select(PlayerModel).where(PlayerModel.username == uname)
             player = session.scalars(stmt).first()
             if not player:
                 raise KeyError(f"Player {username} does not exist")
@@ -170,6 +178,9 @@ class Store:
             stmt = select(TokenModel).where(TokenModel.token == token)
             record = session.scalars(stmt).first()
             return record.username if record else None
+
+    def get_username_for_token(self, token: str) -> str | None:
+        return self.get_token_username(token)
 
     def revoke_token(self, token: str) -> None:
         with self.get_session() as session:

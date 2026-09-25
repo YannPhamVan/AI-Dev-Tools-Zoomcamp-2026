@@ -18,6 +18,8 @@ def fresh_store(monkeypatch):
         ("mamba", 66),
     ]
     for username, score in seed:
+        if s.username_exists(username):
+            continue
         record = s.create_player(username, hash_password("demo1234"))
         record.high_score = score
 
