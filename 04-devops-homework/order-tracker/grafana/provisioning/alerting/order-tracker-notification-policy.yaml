@@ -1,0 +1,18 @@
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: grafana-default-email
+    group_by:
+      - grafana_folder
+      - alertname
+    routes:
+      - receiver: incident-responder
+        object_matchers:
+          - [alertname, '=', 'Order Tracker 5xx responses']
+        group_by:
+          - alertname
+          - endpoint
+        group_wait: 0s
+        group_interval: 1m
+        repeat_interval: 4h

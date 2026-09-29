@@ -1,0 +1,14 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: incident-responder
+    receivers:
+      - uid: order-tracker-incident-webhook
+        type: webhook
+        settings:
+          url: http://incident-response:8001/alerts
+          httpMethod: POST
+          maxAlerts: "10"
+          title: '{{ template "default.title" . }}'
+          message: '{{ template "default.message" . }}'
